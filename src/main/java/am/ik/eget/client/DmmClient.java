@@ -5,7 +5,7 @@ import java.util.List;
 import am.ik.eget.entity.Movie;
 
 public interface DmmClient {
-    String generateSessionId();
+    void generateSessionId();
 
     void download(String url, OutputStream output);
 

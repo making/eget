@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
@@ -29,7 +30,7 @@ public class Movie implements Serializable {
     @Column(name = "title")
     private String title;
 
-    @ManyToMany(targetEntity = Actress.class)
+    @ManyToMany(targetEntity = Actress.class, fetch=FetchType.EAGER)
     @JoinTable(name = "movie_actress", joinColumns = @JoinColumn(name = "movie_url", referencedColumnName = "url"), inverseJoinColumns = @JoinColumn(name = "actress_id", referencedColumnName = "id"))
     private List<Actress> actresses;
 

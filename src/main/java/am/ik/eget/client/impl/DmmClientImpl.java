@@ -3,6 +3,7 @@ package am.ik.eget.client.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.SocketTimeoutException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,8 +22,9 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import am.ik.eget.client.DmmClient;
@@ -32,7 +34,8 @@ import am.ik.eget.exception.EgetException;
 import am.ik.eget.util.Util;
 
 @Component
-public class DmmClientImpl implements DmmClient, InitializingBean {
+@Scope(BeanDefinition.SCOPE_PROTOTYPE)
+public class DmmClientImpl implements DmmClient {
     public static final Pattern ACTRESS_URL_PAT = Pattern.compile(Pattern
             .quote("/article=actress/id=") + "([0-9]+)" + Pattern.quote("/"));
     public static final Pattern PART_PAT = Pattern.compile("part=([0-9]+)");
@@ -63,7 +66,7 @@ public class DmmClientImpl implements DmmClient, InitializingBean {
     }
 
     @Override
-    public String generateSessionId() {
+    public void generateSessionId() {
         LOGGER.info("login to DMM");
         try {
             Connection.Response res = Jsoup
@@ -73,7 +76,9 @@ public class DmmClientImpl implements DmmClient, InitializingBean {
                     .data("act", "commit").method(Method.POST).execute();
             String sesId = res.cookie(SESSION_ID_KEY);
             LOGGER.info("sessionId={}", sesId);
-            return sesId;
+            this.sessionId = sesId;
+        } catch (SocketTimeoutException e) {
+            LOGGER.warn("login failed", e);
         } catch (IOException e) {
             throw new EgetException("failed to login", e);
         }
@@ -169,10 +174,4 @@ public class DmmClientImpl implements DmmClient, InitializingBean {
             method.releaseConnection();
         }
     }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        sessionId = generateSessionId();
-    }
-
 }
