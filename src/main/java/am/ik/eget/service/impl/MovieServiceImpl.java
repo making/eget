@@ -1,10 +1,8 @@
 package am.ik.eget.service.impl;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -17,6 +15,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import am.ik.eget.client.DmmClient;
+import am.ik.eget.downloader.FileDownloader;
+import am.ik.eget.downloader.FileWatcher;
 import am.ik.eget.entity.Actress;
 import am.ik.eget.entity.Movie;
 import am.ik.eget.entity.Page;
@@ -25,6 +25,7 @@ import am.ik.eget.repository.ActressRepository;
 import am.ik.eget.repository.MovieRepository;
 import am.ik.eget.repository.PageRepository;
 import am.ik.eget.service.MovieService;
+import am.ik.eget.util.Util;
 
 @Service
 public class MovieServiceImpl implements MovieService {
@@ -62,31 +63,44 @@ public class MovieServiceImpl implements MovieService {
     }
 
     @Override
-    public void downloadMovie(Movie movie) {
+    public void downloadMovie(final Movie movie) {
         if (!movie.isSaved()) {
             dmmClient.generateSessionId();
-            String url = movie.getUrl();
+            final String url = movie.getUrl();
             try {
-                File targetFile = getTargetFile(movie);
-                OutputStream output = new BufferedOutputStream(
-                        new FileOutputStream(targetFile));
-                LOGGER.info("start to download {} to {}", movie,
-                        targetFile.getCanonicalFile());
+                final File targetFile = getTargetFile(movie);
                 long start = System.currentTimeMillis();
-                dmmClient.download(url, output);
+                FileDownloader dl = new FileDownloader(url, targetFile, dmmClient,
+                        Thread.currentThread());
+                FileWatcher watch = new FileWatcher(targetFile,
+                        Thread.currentThread());
+                try {
+                    LOGGER.debug("download {}", movie);
+                    dl.start();
+                    watch.start();
+                    dl.join();
+                } catch (InterruptedException e) {
+                    LOGGER.warn("interupted!", e);
+                    FileUtils.deleteQuietly(targetFile);
+                    dl.stopDownload();
+                    throw new EgetException(e);
+                } finally {
+                    watch.interrupt();
+                }
                 long end = System.currentTimeMillis();
                 LOGGER.info("end to download. {} min",
                         TimeUnit.MILLISECONDS.toMinutes(end - start));
                 movie.setSaved(true);
+                movie.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
                 movieRepository.save(movie);
-            } catch (IOException e) {
-                throw new EgetException(e);
+            } catch (Exception e) {
+                throw Util.convertEgetException(e);
             }
         }
     }
 
     protected File getTargetFile(Movie movie) throws IOException {
-        File baseDir = new File("/Volumes/WDC_HDD_2TB_01-1/dmm/" + channel);
+        File baseDir = new File("/Volumes/WDC_HDD_2TB_01-2/dmm/" + channel);
         List<Actress> actresses = movie.getActresses();
         Actress actress = actresses.get(0);
         File targetDir = new File(baseDir, actress.getName());

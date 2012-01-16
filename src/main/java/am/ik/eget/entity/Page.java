@@ -6,6 +6,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 @Entity
 @Table(name = "page")
@@ -19,6 +20,10 @@ public class Page {
     
     @Column(name="type")
     private String type;
+    
+    //@Column(name = "channel")
+    @Transient
+    private String channel;
     
     @Column(name="extracted")
     private boolean extracted = false;
@@ -70,6 +75,14 @@ public class Page {
     public String toString() {
         return "Page [url=" + url + ", page=" + page + ", type=" + type
                 + ", extracted=" + extracted + ", createdAt=" + createdAt + "]";
+    }
+
+    public String getChannel() {
+        return channel;
+    }
+
+    public void setChannel(String channel) {
+        this.channel = channel;
     }
     
 }

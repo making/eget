@@ -10,6 +10,7 @@ public class LinkNode {
     private final int page;
     private final String path;
     private final LinkType type;
+    private final String channel;
     private static final Pattern LINK_PAT = Pattern.compile(Pattern
             .quote("http://www.dmm.co.jp/monthly/")
             + "[a-z0-9]+"
@@ -21,8 +22,9 @@ public class LinkNode {
         DETAIL, LIST, UNKNOWN
     }
 
-    public LinkNode(String path) {
+    public LinkNode(String path, String channel) {
         this.path = path;
+        this.channel = channel;
         Matcher m = LINK_PAT.matcher(path);
         if (m.find()) {
             String type = m.group(1);
@@ -93,6 +95,7 @@ public class LinkNode {
         page.setExtracted(false);
         page.setPage(this.page);
         page.setType(this.type.name());
+        page.setChannel(this.channel);
         page.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         return page;
     }
@@ -100,6 +103,10 @@ public class LinkNode {
     @Override
     public String toString() {
         return "LinkNode [path=" + path + ", type=" + type + ", page=" + page + "]";
+    }
+
+    public String getChannel() {
+        return channel;
     }
 
 }

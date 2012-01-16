@@ -25,7 +25,7 @@ public class DownloadServiceImpl implements DownloadService {
 
     @Override
     public void startDownload() {
-        PageRequest pageable = new PageRequest(0, 3);
+        PageRequest pageable = new PageRequest(0, 300);
         Page<Movie> page = movieRepository.findBySaved(false, pageable);
         for (Movie movie : page) {
             try {

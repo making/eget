@@ -26,7 +26,7 @@ public class MovieLinkCrawler {
             String channel = ctx.getBean("dmmChannel", String.class);
             String target = "/monthly/" + channel + "/";
             String rootUrl = "http://www.dmm.co.jp" + target;
-            LinkNode root = new LinkNode(rootUrl);
+            LinkNode root = new LinkNode(rootUrl, channel);
             LinkedList<LinkNode> opened = new LinkedList<LinkNode>();
 
             PageService closed = ctx.getBean(PageService.class);
@@ -48,7 +48,7 @@ public class MovieLinkCrawler {
                         for (Element e : anchors) {
                             String url = rootUrl
                                     + e.attr("href").replace(target, "");
-                            LinkNode next = new LinkNode(url);
+                            LinkNode next = new LinkNode(url, channel);
                             opened.add(next);
                         }
                         closed.add(page);

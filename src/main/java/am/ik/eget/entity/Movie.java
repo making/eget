@@ -12,6 +12,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
 
@@ -29,7 +30,11 @@ public class Movie implements Serializable {
 
     @Column(name = "title")
     private String title;
-
+    
+    //@Column(name = "channel")
+    @Transient
+    private String channel;
+    
     @ManyToMany(targetEntity = Actress.class, fetch=FetchType.EAGER)
     @JoinTable(name = "movie_actress", joinColumns = @JoinColumn(name = "movie_url", referencedColumnName = "url"), inverseJoinColumns = @JoinColumn(name = "actress_id", referencedColumnName = "id"))
     private List<Actress> actresses;
@@ -124,5 +129,13 @@ public class Movie implements Serializable {
     @Override
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
+    }
+
+    public String getChannel() {
+        return channel;
+    }
+
+    public void setChannel(String channel) {
+        this.channel = channel;
     }
 }

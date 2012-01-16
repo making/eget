@@ -8,6 +8,8 @@ public interface DmmClient {
     void generateSessionId();
 
     void download(String url, OutputStream output);
+    
+    void stopDownload();
 
     List<Movie> getMovies(String url);
 }

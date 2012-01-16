@@ -7,8 +7,12 @@ import java.net.SocketTimeoutException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLHandshakeException;
 
 import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpClient;
@@ -46,6 +50,7 @@ public class DmmClientImpl implements DmmClient {
             .getLogger(DmmClientImpl.class);
 
     private String sessionId = "";
+    private final AtomicBoolean downloding = new AtomicBoolean(false);
 
     @Value("${dmm.userid}")
     protected String userId;
@@ -79,9 +84,23 @@ public class DmmClientImpl implements DmmClient {
             this.sessionId = sesId;
         } catch (SocketTimeoutException e) {
             LOGGER.warn("login failed", e);
+            generateSessionIdRetry(3000);
+        } catch (SSLHandshakeException e) {
+            LOGGER.warn("login failed", e);
+            generateSessionIdRetry(3000);
         } catch (IOException e) {
             throw new EgetException("failed to login", e);
         }
+    }
+
+    protected void generateSessionIdRetry(long waitMilliseconds) {
+        LOGGER.debug("retry to login");
+        try {
+            TimeUnit.MILLISECONDS.sleep(waitMilliseconds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        generateSessionId();
     }
 
     @Override
@@ -161,17 +180,32 @@ public class DmmClientImpl implements DmmClient {
         client.getState().addCookie(cookie);
         GetMethod method = new GetMethod(url);
         try {
+            downloding.set(true);
             client.executeMethod(method);
             InputStream input = method.getResponseBodyAsStream();
             try {
                 IOUtils.copyLarge(input, output);
+                byte[] buffer = new byte[4096];
+                int n = 0;
+                while (downloding.get() && -1 != (n = input.read(buffer))) {
+                    output.write(buffer, 0, n);
+                }
+                if (!downloding.get()) {
+                    LOGGER.warn("interrupted to download " + url);
+                }
             } finally {
                 IOUtils.closeQuietly(input);
             }
         } catch (IOException e) {
-            throw new EgetException("failed to download " + url);
+            throw new EgetException("failed to download " + url, e);
         } finally {
+            downloding.set(false);
             method.releaseConnection();
         }
+    }
+
+    @Override
+    public void stopDownload() {
+        downloding.set(false);
     }
 }
